@@ -1,0 +1,272 @@
+{% extends "base.html" %}
+
+{% block content %}
+<div class="row">
+    <!-- Stock Input Form -->
+    <div class="col-12 mb-4">
+        <div class="card bg-dark border-secondary">
+            <div class="card-body">
+                <h2 class="card-title mb-4">
+                    <i class="fas fa-search me-2 text-primary"></i>
+                    Stock Analysis
+                </h2>
+                
+                <form method="POST" action="{{ url_for('analyze_stock') }}" class="row g-3">
+                    <div class="col-md-6">
+                        <label for="symbol" class="form-label">Stock Symbol</label>
+                        <div class="input-group">
+                            <span class="input-group-text bg-secondary border-secondary">
+                                <i class="fas fa-dollar-sign"></i>
+                            </span>
+                            <input type="text" 
+                                   class="form-control bg-dark border-secondary text-light" 
+                                   id="symbol" 
+                                   name="symbol" 
+                                   placeholder="e.g., AAPL, GOOGL, TSLA"
+                                   value="{{ symbol if symbol else '' }}"
+                                   required>
+                        </div>
+                        <div class="form-text">Enter a valid stock ticker symbol</div>
+                    </div>
+                    
+                    <div class="col-md-4">
+                        <label for="period" class="form-label">Time Period</label>
+                        <select class="form-select bg-dark border-secondary text-light" id="period" name="period">
+                            <option value="1mo" {{ 'selected' if period == '1mo' else '' }}>1 Month</option>
+                            <option value="3mo" {{ 'selected' if period == '3mo' else '' }}>3 Months</option>
+                            <option value="6mo" {{ 'selected' if period == '6mo' else '' }}>6 Months</option>
+                            <option value="1y" {{ 'selected' if period == '1y' or not period else '' }}>1 Year</option>
+                            <option value="2y" {{ 'selected' if period == '2y' else '' }}>2 Years</option>
+                            <option value="5y" {{ 'selected' if period == '5y' else '' }}>5 Years</option>
+                        </select>
+                    </div>
+                    
+                    <div class="col-md-2 d-flex align-items-end">
+                        <button type="submit" class="btn btn-primary w-100">
+                            <i class="fas fa-chart-bar me-2"></i>
+                            Analyze
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+    </div>
+
+    {% if show_results and financial_metrics %}
+    <!-- Financial Metrics Cards -->
+    <div class="col-12 mb-4">
+        <div class="row g-3">
+            <div class="col-md-6 col-lg-3">
+                <div class="card bg-primary bg-opacity-10 border-primary">
+                    <div class="card-body text-center">
+                        <h3 class="text-primary mb-1">{{ financial_metrics.current_price }}</h3>
+                        <p class="text-muted mb-0">Current Price</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3">
+                <div class="card bg-success bg-opacity-10 border-success">
+                    <div class="card-body text-center">
+                        <h3 class="text-success mb-1">{{ financial_metrics.market_cap }}</h3>
+                        <p class="text-muted mb-0">Market Cap</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3">
+                <div class="card bg-info bg-opacity-10 border-info">
+                    <div class="card-body text-center">
+                        <h3 class="text-info mb-1">{{ financial_metrics.pe_ratio }}</h3>
+                        <p class="text-muted mb-0">P/E Ratio</p>
+                    </div>
+                </div>
+            </div>
+            
+            <div class="col-md-6 col-lg-3">
+                <div class="card bg-warning bg-opacity-10 border-warning">
+                    <div class="card-body text-center">
+                        <h3 class="text-warning mb-1">{{ financial_metrics.dividend_yield }}</h3>
+                        <p class="text-muted mb-0">Dividend Yield</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Stock Chart -->
+    <div class="col-12 mb-4">
+        <div class="card bg-dark border-secondary">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h3 class="mb-0">
+                        <i class="fas fa-chart-line me-2 text-primary"></i>
+                        {{ financial_metrics.symbol }} - {{ financial_metrics.company_name }}
+                    </h3>
+                    <div class="btn-group" role="group">
+                        <button type="button" class="btn btn-outline-primary btn-sm active" data-chart-type="price">
+                            Price
+                        </button>
+                        <button type="button" class="btn btn-outline-primary btn-sm" data-chart-type="volume">
+                            Volume
+                        </button>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div style="height: 400px; position: relative;">
+                    <canvas id="stockChart"></canvas>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Financial Details Table -->
+    <div class="col-lg-4 mb-4">
+        <div class="card bg-dark border-secondary">
+            <div class="card-header">
+                <h4 class="mb-0">
+                    <i class="fas fa-info-circle me-2 text-info"></i>
+                    Company Details
+                </h4>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-dark table-borderless">
+                        <tbody>
+                            <tr>
+                                <td><strong>Symbol:</strong></td>
+                                <td>{{ financial_metrics.symbol }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Company:</strong></td>
+                                <td>{{ financial_metrics.company_name }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Sector:</strong></td>
+                                <td>{{ financial_metrics.sector }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Industry:</strong></td>
+                                <td>{{ financial_metrics.industry }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>EPS:</strong></td>
+                                <td>{{ financial_metrics.eps }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Beta:</strong></td>
+                                <td>{{ financial_metrics.beta }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>52W High:</strong></td>
+                                <td>{{ financial_metrics['52_week_high'] }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>52W Low:</strong></td>
+                                <td>{{ financial_metrics['52_week_low'] }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Volume:</strong></td>
+                                <td>{{ financial_metrics.volume }}</td>
+                            </tr>
+                            <tr>
+                                <td><strong>Avg Volume:</strong></td>
+                                <td>{{ financial_metrics.avg_volume }}</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Historical Data Table -->
+    <div class="col-lg-8 mb-4">
+        <div class="card bg-dark border-secondary">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h4 class="mb-0">
+                        <i class="fas fa-table me-2 text-success"></i>
+                        Historical Data (Last 30 Days)
+                    </h4>
+                    <a href="{{ url_for('download_csv', symbol=symbol, period=period) }}" 
+                       class="btn btn-success btn-sm">
+                        <i class="fas fa-download me-2"></i>
+                        Download CSV
+                    </a>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="table-responsive">
+                    <table class="table table-dark table-striped table-hover" id="stockTable">
+                        <thead class="table-primary">
+                            <tr>
+                                <th>Date</th>
+                                <th>Open</th>
+                                <th>High</th>
+                                <th>Low</th>
+                                <th>Close</th>
+                                <th>Volume</th>
+                                <th>Change</th>
+                                <th>Change %</th>
+                            </tr>
+                        </thead>
+                        <tbody>
+                            {% for row in table_data %}
+                            <tr>
+                                <td>{{ row.date }}</td>
+                                <td>${{ row.open }}</td>
+                                <td>${{ row.high }}</td>
+                                <td>${{ row.low }}</td>
+                                <td>${{ row.close }}</td>
+                                <td>{{ row.volume }}</td>
+                                <td class="{{ 'text-success' if row.change >= 0 else 'text-danger' }}">
+                                    ${{ row.change }}
+                                </td>
+                                <td class="{{ 'text-success' if row.change >= 0 else 'text-danger' }}">
+                                    {{ row.change_percent }}
+                                </td>
+                            </tr>
+                            {% endfor %}
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+    {% endif %}
+</div>
+
+<!-- Chart Data for JavaScript -->
+{% if show_results and chart_data %}
+<script>
+    window.chartData = {{ chart_data | tojson | safe }};
+    window.stockSymbol = "{{ symbol }}";
+</script>
+{% endif %}
+{% endblock %}
+
+{% block scripts %}
+{% if show_results and chart_data %}
+<script>
+    // Initialize charts when page loads
+    document.addEventListener('DOMContentLoaded', function() {
+        initializeStockChart();
+        
+        // Chart type toggle functionality
+        document.querySelectorAll('[data-chart-type]').forEach(button => {
+            button.addEventListener('click', function() {
+                // Update active button
+                document.querySelectorAll('[data-chart-type]').forEach(btn => 
+                    btn.classList.remove('active'));
+                this.classList.add('active');
+                
+                // Update chart
+                updateChartType(this.dataset.chartType);
+            });
+        });
+    });
+</script>
+{% endif %}
+{% endblock %}
